@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, ExternalLink, MousePointer, Package, Link, Tag, Trash2, Edit2, Settings } from 'lucide-react';
+import { Search, Plus, ExternalLink, MousePointer, Package, Link, Tag, Trash2, Edit2, Settings, RotateCcw, Database } from 'lucide-react';
 import AddBrandModal from '@/components/AddBrandModal';
 import AddLinkModal from '@/components/AddLinkModal';
 import EditLinkModal from '@/components/EditLinkModal';
 import ManageCategoriesModal from '@/components/ManageCategoriesModal';
+import DatabaseStateModal from '@/components/DatabaseStateModal';
 
 interface Brand {
   id: number;
@@ -50,6 +51,8 @@ export default function Home() {
   const [selectedBrandId, setSelectedBrandId] = useState<number | undefined>();
   const [editingLink, setEditingLink] = useState<EditableLink | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isDatabaseStateModalOpen, setIsDatabaseStateModalOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchBrands(), fetchCategories(), fetchLinks()]).then(() => {
@@ -84,6 +87,35 @@ export default function Home() {
       setLinks(data);
     } catch (error) {
       console.error('Failed to fetch links:', error);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    const confirmed = confirm(
+      'Are you sure you want to reset the database?\n\n' +
+      'This will:\n' +
+      '• Delete all current brands, categories, and links\n' +
+      '• Restore the original sample data\n\n' +
+      'This action cannot be undone!'
+    );
+    
+    if (!confirmed) return;
+    
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/reset-database', { method: 'POST' });
+      if (res.ok) {
+        // Refresh all data
+        await Promise.all([fetchBrands(), fetchCategories(), fetchLinks()]);
+        alert('Database has been reset to initial state!');
+      } else {
+        alert('Failed to reset database. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      alert('Failed to reset database. Please try again.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -216,6 +248,23 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">🚴 Bike Shop Link Manager</h1>
             <div className="flex gap-2">
+              <button
+                onClick={() => setIsDatabaseStateModalOpen(true)}
+                className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors flex items-center gap-2"
+                title="View database state"
+              >
+                <Database className="w-4 h-4" />
+                View DB
+              </button>
+              <button
+                onClick={handleResetDatabase}
+                disabled={isResetting}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:bg-gray-500/20 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+                title="Reset database to initial state"
+              >
+                <RotateCcw className={`w-4 h-4 ${isResetting ? 'animate-spin' : ''}`} />
+                {isResetting ? 'Resetting...' : 'Reset DB'}
+              </button>
               <button
                 onClick={() => setIsCategoriesModalOpen(true)}
                 className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
@@ -421,6 +470,10 @@ export default function Home() {
         onAdd={handleAddCategory}
         onUpdate={handleUpdateCategory}
         onDelete={handleDeleteCategory}
+      />
+      <DatabaseStateModal
+        isOpen={isDatabaseStateModalOpen}
+        onClose={() => setIsDatabaseStateModalOpen(false)}
       />
     </div>
   );
