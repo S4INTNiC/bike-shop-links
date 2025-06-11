@@ -186,16 +186,10 @@ export default function Home() {
     );
   });
 
-  const groupedLinks = filteredLinks.reduce((acc, link) => {
-    if (!acc[link.brand_id]) {
-      acc[link.brand_id] = {
-        brand: brands.find(b => b.id === link.brand_id)!,
-        links: []
-      };
-    }
-    acc[link.brand_id].links.push(link);
-    return acc;
-  }, {} as Record<number, { brand: Brand; links: LinkData[] }>);
+  const groupedLinks = brands.map(brand => ({
+    brand,
+    links: filteredLinks.filter(link => link.brand_id === brand.id)
+  }));
 
   const stats = {
     totalBrands: brands.length,
@@ -303,7 +297,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 pb-12">
-        {Object.keys(groupedLinks).length === 0 ? (
+        {groupedLinks.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
               {searchQuery ? 'No links found matching your search.' : 'No brands or links yet. Add your first brand to get started!'}
@@ -311,7 +305,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.values(groupedLinks).map(({ brand, links }) => (
+            {groupedLinks.map(({ brand, links }) => (
               <div key={brand.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
                 <div className="p-4 border-b flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-800">{brand.name}</h2>
@@ -333,54 +327,58 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="p-4 space-y-3">
-                  {links.map(link => (
-                    <div key={link.id} className="group">
-                      <div className="flex items-start justify-between">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleLinkClick(link.id)}
-                          className="flex-1 hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-blue-600 hover:text-blue-700">
-                              {link.title}
-                            </span>
-                            <ExternalLink className="w-3 h-3 text-gray-400" />
-                            {link.clicks > 0 && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                                {link.clicks}
+                  {links.length === 0 ? (
+                    <div className="text-gray-400 text-sm italic">No links for this brand yet.</div>
+                  ) : (
+                    links.map(link => (
+                      <div key={link.id} className="group">
+                        <div className="flex items-start justify-between">
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleLinkClick(link.id)}
+                            className="flex-1 hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-blue-600 hover:text-blue-700">
+                                {link.title}
                               </span>
+                              <ExternalLink className="w-3 h-3 text-gray-400" />
+                              {link.clicks > 0 && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {link.clicks}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Tag className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs text-gray-500">{link.category_name}</span>
+                            </div>
+                            {link.description && (
+                              <p className="text-sm text-gray-600 mt-1">{link.description}</p>
                             )}
+                          </a>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => openEditLinkModal(link)}
+                              className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                              title="Edit link"
+                            >
+                              <Edit2 className="w-3 h-3 text-gray-600" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLink(link.id)}
+                              className="p-1.5 hover:bg-red-100 rounded transition-colors"
+                              title="Delete link"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600" />
+                            </button>
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Tag className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{link.category_name}</span>
-                          </div>
-                          {link.description && (
-                            <p className="text-sm text-gray-600 mt-1">{link.description}</p>
-                          )}
-                        </a>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openEditLinkModal(link)}
-                            className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                            title="Edit link"
-                          >
-                            <Edit2 className="w-3 h-3 text-gray-600" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLink(link.id)}
-                            className="p-1.5 hover:bg-red-100 rounded transition-colors"
-                            title="Delete link"
-                          >
-                            <Trash2 className="w-3 h-3 text-red-600" />
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             ))}
